@@ -1,4 +1,4 @@
-# clige 
+# CLIGE: Command Line Interface Game Engine
 
 <!-- Header Badges -->
 
@@ -14,6 +14,17 @@
 </div>
 
 <!-- End Header -->
+
+A project to create an ansi/terminal based game engine
+
+## Update Loop
+1. **Logic**: Calculating data and states based on existing data.
+- Calculates data regardless of how many fps
+- Can use a delta time variable to calculate animations and events
+2. **Event**: Built in event system. A seriese of events that can be subscribed to and have certain messages passed when something is triggered, or when time passes
+3. **Render**: This is where each component / layer will have it's graphics computed and merged into a single canvas. This canvas then will render/draw to the screen
+- Handles data -> graphics/chars and colors
+- The final state of renderable characters for that frame
 
 <!-- Footer Badges --!>
 
