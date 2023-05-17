@@ -1,16 +1,27 @@
-use std::{cell::RefCell, fmt::Display, rc::Rc, io::{self, Write}};
+use std::{
+    cell::RefCell,
+    fmt::Display,
+    io::{self, Write},
+    rc::Rc,
+};
 
 use crate::draw::position;
+
+use super::{View, Viewable};
+
+const FILL: char = ' ';
 
 /// A writable object that stores characters for a terminal grid.
 ///
 /// Allows for displaying a blank canvas or a canvas with a border.
 /// The object will only expose the writable portion of the canvase.
 /// This means everything but the border character/cells.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct Canvas {
     actual: Vec<Vec<Rc<RefCell<char>>>>,
     grid: Vec<Vec<Rc<RefCell<char>>>>,
+    pub border: bool,
+    pub children: Vec<Rc<RefCell<View>>>,
     pub width: usize,
     pub height: usize,
     pub x: u16,
@@ -58,8 +69,8 @@ impl Canvas {
             ));
         }
 
-        let mut width = width as usize;
-        let mut height = height as usize;
+        let width = width as usize;
+        let height = height as usize;
 
         let mut grid = Vec::new();
         for _ in 0..height {
@@ -67,32 +78,102 @@ impl Canvas {
             let length = grid.len();
 
             for _ in 0..width {
-                grid[length-1].push(Rc::new(RefCell::new(' ')));
+                grid[length - 1].push(Rc::new(RefCell::new(FILL)));
             }
-
         }
 
         let mut actual = Vec::new();
-        let mut start = 0;
 
         if border {
+            for i in 1..height - 1 {
+                actual.push(Vec::new());
+                let length = actual.len();
+
+                for j in 1..width - 1 {
+                    actual[length - 1].push(grid[i][j].clone())
+                }
+            }
+        } else {
+            for i in 0..height {
+                actual.push(Vec::new());
+                let length = actual.len();
+
+                for j in 0..width {
+                    actual[length - 1].push(grid[i][j].clone())
+                }
+            }
+        }
+
+        let mut canvas = Canvas {
+            actual,
+            grid,
+            children: Vec::new(),
+            width: width.into(),
+            height: height.into(),
+            border,
+            x,
+            y,
+        };
+
+        canvas.border();
+        Ok(canvas)
+    }
+
+    pub fn reset(&mut self) {
+        for line in self.actual.iter() {
+            for char in line {
+                char.replace(FILL);
+            }
+        }
+    }
+
+    pub fn toggle_border(&mut self) {
+        self.border = !self.border;
+        self.border();
+
+        // Adjust actual viewport
+        let mut actual = Vec::new();
+        if self.border {
+            for i in 1..self.height - 1 {
+                actual.push(Vec::new());
+                let length = actual.len();
+
+                for j in 1..self.width - 1 {
+                    actual[length - 1].push(self.grid[i][j].clone())
+                }
+            }
+        } else {
+            for i in 0..self.height {
+                actual.push(Vec::new());
+                let length = actual.len();
+
+                for j in 0..self.width {
+                    actual[length - 1].push(self.grid[i][j].clone())
+                }
+            }
+        }
+        self.actual = actual
+    }
+
+    fn border(&mut self) {
+        if self.border {
             // Assign border characters
-            for (i, line) in grid.iter().enumerate() {
+            for (i, line) in self.grid.iter().enumerate() {
                 if i == 0 {
                     for (j, char) in line.iter().enumerate() {
                         if j == 0 {
                             char.replace('┌');
-                        } else if j == width - 1 {
+                        } else if j == self.width - 1 {
                             char.replace('┐');
                         } else {
                             char.replace('─');
                         }
                     }
-                } else if i == height - 1 {
+                } else if i == self.height - 1 {
                     for (j, char) in line.iter().enumerate() {
                         if j == 0 {
                             char.replace('└');
-                        } else if j == width - 1 {
+                        } else if j == self.width - 1 {
                             char.replace('┘');
                         } else {
                             char.replace('─');
@@ -104,36 +185,40 @@ impl Canvas {
                     line[length - 1].replace('│');
                 }
             }
-        
-            start = 1;
-            height -= 1;
-            width -= 1;
-        }
-
-        for i in start..height {
-            actual.push(Vec::new());
-            let length = actual.len();
-
-            for j in start..width {
-                actual[length-1].push(grid[i][j].clone())
+        } else {
+            for (i, line) in self.grid.iter().enumerate() {
+                if i == 0 {
+                    for char in line.iter() {
+                        char.replace(FILL);
+                    }
+                } else if i == self.height - 1 {
+                    for char in line.iter() {
+                        char.replace(FILL);
+                    }
+                } else {
+                    let length = line.len();
+                    line[0].replace(FILL);
+                    line[length - 1].replace(FILL);
+                }
             }
         }
-
-        Ok(Canvas {
-            actual,
-            grid,
-            width: width.into(),
-            height: height.into(),
-            x,
-            y
-        })
     }
 
-    /// Draw the canvas to the standard output
-    pub fn draw(self: &Self) {
-        position(self.x, self.y);
-        print!("{}", self);
-        io::stdout().flush().unwrap();
+    pub fn append(self: &mut Self, child: View) {
+        self.children.push(Rc::new(RefCell::new(child)))
+    }
+
+    pub fn remove(self: &mut Self, child: View) -> View {
+        let index = self
+            .children
+            .iter()
+            .position(|v| *v.borrow() == child)
+            .unwrap();
+        self.children.remove(index).borrow().clone()
+    }
+
+    pub fn get(self: &Self, index: usize) -> Rc<RefCell<View>> {
+        self.children[index].clone()
     }
 
     /// The writable portion of the canvas.
@@ -160,8 +245,33 @@ impl Canvas {
     /// // Canvas
     /// //%    |
     /// ```
-    pub fn view(self: &Self) -> Vec<Vec<Rc<RefCell<char>>>> {
-        self.actual.clone()
+    pub fn view(&self) -> &Vec<Vec<Rc<RefCell<char>>>> {
+        &self.actual
+    }
+
+    pub fn render(&mut self) {
+        position(self.x, self.y);
+        self.reset();
+
+        let cview = self.view();
+        for child in self.children.iter() {
+            match &*child.borrow() {
+                View::Text(text) => {
+                    let text = &*text.borrow();
+                    let (x, y) = text.position();
+                    let text_view = text.view();
+
+                    for (h, line) in text_view.iter().enumerate() {
+                        for (w, char) in line.iter().enumerate() {
+                            cview[h + y][w + x].replace(char.borrow().clone());
+                        }
+                    }
+                }
+                View::Canvas(_self) => {
+                    // TODO: implement nested canvas
+                }
+            }
+        }
     }
 }
 
@@ -171,12 +281,9 @@ impl Display for Canvas {
             write!(
                 f,
                 "{}",
-                line.iter()
-                    .map(|c| c.borrow_mut().to_string())
-                    .collect::<Vec<String>>()
-                    .join("")
+                line.iter().map(|c| *c.borrow()).collect::<String>()
             )?;
-            if i < self.height {
+            if i < self.height - 1 {
                 write!(f, "\n")?;
             }
         }
@@ -188,5 +295,19 @@ impl Default for Canvas {
     fn default() -> Self {
         let termsize::Size { rows, cols } = termsize::get().unwrap();
         Canvas::create(0, 0, cols, rows, false).unwrap()
+    }
+}
+
+impl Viewable for Canvas {
+    fn width(&self) -> usize {
+        self.width
+    }
+
+    fn height(&self) -> usize {
+        self.height
+    }
+
+    fn position(&self) -> (usize, usize) {
+        (self.x as usize, self.y as usize)
     }
 }

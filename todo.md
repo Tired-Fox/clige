@@ -1,6 +1,7 @@
 # TODO
 
-- [ ] Parent -> Children relationships
+- [x] Parent -> Children relationships
+- [ ] Draw/Render method
 - [ ] Position in parent
 - [ ] Alignment of children
 - [ ] Elements
