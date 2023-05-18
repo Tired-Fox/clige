@@ -1,12 +1,14 @@
-use super::Viewable;
+use crate::draw::Style;
+
+use super::{Pixel, Viewable};
 use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct Text {
-    grid: Vec<Vec<Rc<RefCell<char>>>>,
+    grid: Vec<Vec<Rc<RefCell<Pixel>>>>,
     width: usize,
-    height: usize,
     text: String,
+    pixels: Vec<Pixel>,
     pub x: u16,
     pub y: u16,
 }
@@ -14,15 +16,16 @@ pub struct Text {
 impl From<String> for Text {
     fn from(value: String) -> Self {
         let mut grid = vec![Vec::new()];
-        for char in value.chars() {
-            grid[0].push(Rc::new(RefCell::new(char)));
+        let pixels = Pixel::colored(Style::default(), value.clone());
+        for char in pixels.iter() {
+            grid[0].push(Rc::new(RefCell::new(char.clone())));
         }
 
         Text {
             width: grid[0].len(),
-            height: 1,
             grid,
             text: value,
+            pixels,
             x: 0,
             y: 0,
         }
@@ -40,8 +43,8 @@ impl Text {
         Text {
             grid: Vec::new(),
             width: 0,
-            height: 0,
             text: String::new(),
+            pixels: Vec::new(),
             x: 0,
             y: 0,
         }
@@ -51,58 +54,46 @@ impl Text {
         TextBuilder::new()
     }
 
-    pub fn update(self: &mut Self, text: &str, width: usize) {
-        let mut width = width;
+    pub fn update(self: &mut Self, pixels: Vec<Pixel>) {
+        self.text = pixels.iter().map(|c| c.symbol).collect::<String>();
+        self.pixels = pixels;
 
-        if text.len() <= width {
-            width = text.len();
-        }
-
-
-        let mut grid = Vec::new();
-        let mut length = grid.len();
-
-        for (i, char) in text.chars().enumerate() {
-            if i % width == 0 {
-                grid.push(Vec::new());
-                length += 1;
-            }
-            grid[length - 1].push(Rc::new(RefCell::new(char)));
-        }
-
-        self.width = width;
-        self.height = grid.len();
-        self.text = text.to_string();
-        self.grid = grid;
+        self.redraw();
     }
 
-    pub fn view(&self) -> &Vec<Vec<Rc<RefCell<char>>>> {
+    pub fn view(&self) -> &Vec<Vec<Rc<RefCell<Pixel>>>> {
         &self.grid
     }
 
-    pub fn resize(&mut self, x: u16, y: u16, width: usize) {
-        let mut width = width;
+    pub fn move_to(&mut self, x: u16, y: u16) {
+        self.x = x;
+        self.y = y;
+    }
 
-        if self.text.len() <= width {
-            width = self.text.len();
+    fn redraw(&mut self) {
+        let mut width = self.width;
+        if self.pixels.len() < width {
+            width = self.pixels.len()
         }
 
         let mut grid = Vec::new();
         let mut length = grid.len();
 
-        for (i, char) in self.text.chars().enumerate() {
+        for (i, char) in self.pixels.iter().enumerate() {
             if i % width == 0 {
                 grid.push(Vec::new());
                 length += 1;
             }
-            grid[length - 1].push(Rc::new(RefCell::new(char)));
+            grid[length - 1].push(Rc::new(RefCell::new(char.clone())));
         }
 
-        self.x = x;
-        self.y= y;
+        self.grid = grid
+    }
+
+    pub fn resize(&mut self, width: usize) -> usize {
         self.width = width;
-        self.height = grid.len();
-        self.grid = grid;
+        self.redraw();
+        self.width
     }
 }
 
@@ -112,7 +103,7 @@ impl Viewable for Text {
     }
 
     fn height(&self) -> usize {
-        self.height
+        self.grid.len()
     }
 
     fn position(&self) -> (usize, usize) {
@@ -123,7 +114,7 @@ impl Viewable for Text {
 pub struct TextBuilder {
     x: u16,
     y: u16,
-    text: String,
+    pixels: Vec<Pixel>
 }
 
 impl TextBuilder {
@@ -131,46 +122,46 @@ impl TextBuilder {
         TextBuilder {
             x: 0,
             y: 0,
-            text: String::new(),
+            pixels: Vec::new(),
         }
     }
 
-    pub fn position(mut self: Self, x: u16, y: u16) -> Self {
+    pub fn position(mut self, x: u16, y: u16) -> Self {
         self.x = x;
         self.y = y;
         self
     }
 
-    pub fn text(mut self: Self, text: &str) -> Self {
-        self.text.push_str(text);
+    pub fn text(mut self, pixels: Vec<Pixel>) -> Self {
+        self.pixels = pixels;
         self
     }
 
-    pub fn build(self: Self, width: usize) -> Text {
-        let mut width = width;
+    pub fn build(self, width: usize) -> Text {
+        let mut fixed_width = width;
 
-        if self.text.len() <= width {
-            width = self.text.len();
+        if self.pixels.len() <= fixed_width {
+            fixed_width = self.pixels.len();
         }
 
         let mut grid = Vec::new();
         let mut length = grid.len();
 
-        for (i, char) in self.text.chars().enumerate() {
-            if i % width == 0 {
+        for (i, char) in self.pixels.iter().enumerate() {
+            if i % fixed_width == 0 {
                 grid.push(Vec::new());
                 length += 1;
             }
-            grid[length - 1].push(Rc::new(RefCell::new(char)));
+            grid[length - 1].push(Rc::new(RefCell::new(char.to_owned())));
         }
 
         Text {
-            height: grid.len(),
             width,
             grid,
             x: self.x,
             y: self.y,
-            text: self.text,
+            text: self.pixels.iter().map(|p| p.symbol).collect::<String>(),
+            pixels: self.pixels,
         }
     }
 }
@@ -181,7 +172,9 @@ impl Display for Text {
             write!(
                 f,
                 "{}",
-                line.iter().map(|c| *c.borrow()).collect::<String>()
+                line.iter()
+                    .map(|c| (*c.borrow()).symbol)
+                    .collect::<String>()
             )?;
         }
         Ok(())

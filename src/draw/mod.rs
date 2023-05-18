@@ -1,14 +1,16 @@
-mod canvas;
-mod text;
 mod render;
-pub use canvas::Canvas;
-pub use text::Text;
-pub use render::draw;
+use std::fmt::Display;
 
-use std::{rc::Rc, cell::RefCell, fmt::{self, Display}};
+pub use render::{draw, render};
+
+use crate::ansi::color::background;
 
 pub fn clear() {
-    print!("\x1b[2J")
+    print!("\x1b[H\x1b[0m\x1b[2J");
+}
+
+pub fn Home() {
+    print!("\x1b[H")
 }
 
 pub fn position(x: u16, y: u16) {
@@ -16,43 +18,65 @@ pub fn position(x: u16, y: u16) {
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub enum View {
-    Text(Rc<RefCell<Text>>),
-    Canvas(Rc<RefCell<Canvas>>)
+pub struct Style {
+    pub foreground: String,
+    pub background: String,
 }
 
-impl View {
-    pub fn to_text(&self) -> Result<Rc<RefCell<Text>>, String> {
-        match self {
-            Self::Text(text) => Ok(text.clone()),
-            _ => Err("View is not a text object".to_owned())
+impl Style {
+    pub fn format(&self, previous: &Self) -> String {
+        let mut format = Vec::new();
+        if self.foreground != previous.foreground && self.foreground.trim() != "" {
+            format.push(self.foreground.clone());
         }
 
-    }
-
-    pub fn to_canvas(&self) -> Result<Rc<RefCell<Canvas>>, String> {
-        match self {
-            Self::Canvas(canvas) => Ok(canvas.clone()),
-            _ => Err("View is not a text object".to_owned())
+        if self.background != previous.background && self.background.trim() != "" {
+            format.push(self.background.clone());
         }
 
+        if format.len() > 0 {
+            return format!("\x1b[{}m", format.join(";"));
+        }
+        String::new()
+    }
+
+    pub fn foreground<S>(color: S) -> Self
+    where
+        S: Display,
+    {
+        Style {
+            foreground: color.to_string(),
+            background: String::new()
+        }
+    }
+
+    pub fn background<S>(color: S) -> Self
+    where
+        S: Display,
+    {
+        Style {
+            foreground: color.to_string(),
+            background: String::new()
+        }
+    }
+
+    pub fn new<S, T>(fg: S, bg: T) -> Self
+    where
+        S: Display,
+        T: Display,
+    {
+        Style {
+            foreground: fg.to_string(),
+            background: bg.to_string(),
+        }
     }
 }
 
-impl From<Text> for View {
-    fn from(value: Text) -> Self {
-        View::Text(Rc::new(RefCell::new(value)))
+impl Default for Style {
+    fn default() -> Self {
+        Style {
+            foreground: "39".to_owned(),
+            background: "49".to_owned(),
+        }
     }
-}
-
-impl From<Canvas> for View {
-    fn from(value: Canvas) -> Self {
-        View::Canvas(Rc::new(RefCell::new(value)))
-    }
-}
-
-pub trait Viewable: fmt::Debug + Display {
-    fn height(&self) -> usize;
-    fn width(&self) -> usize;
-    fn position(&self) -> (usize, usize);
 }

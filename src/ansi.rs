@@ -13,6 +13,10 @@ pub mod color {
             print!("\x1b[38;2;{};{};{}m", r, g, b)
         }
 
+        pub fn reset() {
+            print!("\x1b[22;24;39m")
+        }
+
         const BLACK: &str = "\x1b[30m";
         const RED: &str = "\x1b[31m";
         const GREEN: &str = "\x1b[32m";
