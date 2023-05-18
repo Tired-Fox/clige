@@ -7,7 +7,6 @@ pub fn render(canvas: &mut Canvas) {
     canvas.reset();
 
     let cview = canvas.view();
-    let mut color = "\x1b[39m";
     for child in canvas.children.iter() {
         match &*child.borrow() {
             View::Text(text) => {

@@ -263,18 +263,17 @@ impl Display for Canvas {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut color = Style::default();
         for (i, line) in self.grid.iter().enumerate() {
-            write!(
-                f,
-                "{}",
-                line.iter()
-                    .map(|c| {
-                        let char = (*c.borrow()).format(&color);
-                        color = c.borrow().color.clone();
-                        char
-                    })
-                    .collect::<Vec<String>>()
-                    .join("")
-            )?;
+            let line = line
+                .iter()
+                .map(|c| {
+                    let char = c.borrow().format(&color);
+                    color = c.borrow().color.clone();
+                    char
+                })
+                .collect::<Vec<String>>()
+                .join("");
+
+            write!(f, "{}", line)?;
 
             if i < self.height - 1 {
                 write!(f, "\n")?;
@@ -295,14 +294,14 @@ impl Viewable for Canvas {
     fn width(&self) -> usize {
         match self.border {
             true => self.width - 2,
-            false => self.width
+            false => self.width,
         }
     }
 
     fn height(&self) -> usize {
         match self.border {
             true => self.height - 2,
-            false => self.height
+            false => self.height,
         }
     }
 
