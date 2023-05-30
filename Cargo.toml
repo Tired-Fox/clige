@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 ctrlc = "3.2.5"
 noise = "0.8.2"
+rand = "0.8.5"
 termsize = "0.1.6"

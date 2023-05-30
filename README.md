@@ -26,6 +26,20 @@ A project to create an ansi/terminal based game engine
 - Handles data -> graphics/chars and colors
 - The final state of renderable characters for that frame
 
+## What is needed:
+- Rendering engine
+- Physics/collision engine
+- Sound
+- scripting
+- animation
+- mem management
+- threading
+- localization support (Language)
+- scene graph
+- ??
+  - networking
+  - streaming
+
 <!-- Footer Badges --!>
 
 <br>

@@ -1,116 +1,80 @@
 extern crate clige;
-use clige::{
-    ansi::{color, cursor},
-    draw::{clear, draw, Home, Style},
-    elements::{map::NoiseMap, Canvas, Pixel, Text, Viewable},
+
+use std::io::Write;
+use std::time::{Duration, Instant};
+use std::{io, thread::sleep};
+
+use rand::{thread_rng, Rng};
+use clige::core::{
+    buffer::{Buffer, PixelBuffer},
+    color::{Color, Context},
+    data::{Pixel, Rect},
+    noise_map::NoiseMap,
 };
 
-use ctrlc;
-use noise::Perlin;
-use std::thread::sleep;
-use std::time::Duration;
-use std::{
-    io::{self, Write},
-    sync::atomic::{AtomicBool, Ordering},
-};
-use std::{process::exit, sync::Arc};
+fn update(dt: f32) -> Result<(), String> {
+    Ok(())
+}
 
 fn main() {
-    let noise_scroller = true;
-    let element_test = false;
+    let termsize::Size { rows, cols } = termsize::get().unwrap();
+    let mut buffer = PixelBuffer::init(cols as usize, rows as usize);
 
-    print!("{}", cursor::HIDE);
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
+    let scale = 100;
+    let noise = NoiseMap::perlin(thread_rng().gen::<u32>())
+        .size(1000, 1000)
+        .scale(scale as f64 * 0.035)
+        .build();
+    
+    print!("\x1b[?25h");
 
-    ctrlc::set_handler(move || {
-        print!("{}\x1b[0m", cursor::SHOW);
-        r.store(false, Ordering::SeqCst);
-        exit(3)
-    })
-    .expect("Error setting ctrl-c handler");
+    let frame_rate: f32 = 1./1.; // 12 frames per second
+    for i in 0..scale {
 
-    // !PERF: Noise scroller
-    if noise_scroller {
-        let mcanv = Canvas::new(true);
+        let start = Instant::now();
+        print!("\x1b[H");
+        for h in 0..buffer.height() {
+            for w in 0..buffer.width() {
+                let mut n = (11. * noise.get(i + w, i + h)) as i16;
 
-        let scale = 100;
-        let map = NoiseMap::<Perlin>::perlin(935602)
-            .size(mcanv.width() + scale, mcanv.height() + scale)
-            .scale(scale as f64 * 0.035)
-            .build();
-
-        let view = mcanv.view();
-
-        for i in 0..scale {
-            for y in 0..mcanv.height() {
-                for x in 0..mcanv.width() {
-                    let val = map.get(i + x, i + y);
-                    let mut color = (11. * val) as i16;
-
-                    if color < 0 {
-                        color = 232 + (color.abs() * 1);
-                    } else {
-                        color = 232 + 11 + (color * 1);
-                    }
-
-                    view[y][x].replace(Pixel::new(
-                        Style::foreground(format!("38;5;{}", color)),
-                        '█',
-                    ));
+                if n < 0 {
+                    n = 232 + (n.abs() * 1);
+                } else {
+                    n = 232 + 11 + (n * 1);
                 }
+
+                buffer
+                    .set(
+                        w,
+                        h,
+                        Pixel {
+                            value: '█',
+                            color: Color::xterm(n as u8, Context::Foreground),
+                        },
+                    )
+                    .unwrap();
             }
-
-            // clear();
-            Home();
-            print!("{}", mcanv);
-            io::stdout().flush().unwrap();
-            sleep(Duration::from_millis(33));
         }
-    }
-
-    // !PERF: Element Test
-    if element_test {
-        let mut canvas = Canvas::new(true);
-
-        canvas.append(
-            Text::builder()
-                .position(
-                    ((canvas.width() / 2) - 1) as u16,
-                    (canvas.height() / 2) as u16,
-                )
-                .text(vec![Pixel::new(Style::foreground("39"), '0')])
-                .build(2)
-                .into(),
+        print!(
+            "{}",
+            buffer
+                .render(&Rect::from([buffer.width(), buffer.height()]))
+                .unwrap()
         );
+        io::stdout().flush().unwrap();
 
-        let text = canvas.get(0).borrow().to_text().unwrap();
-
-        for color in 1..=255 {
-            // Update
-
-            if color % 10 == 0 {
-                canvas.toggle_border();
-            }
-
-            text.borrow_mut()
-                .update(Pixel::colored(Style::foreground(format!("38;5;{}", color)), color.to_string()));
-
-            let width = text.borrow().width();
-
-            text.borrow_mut().move_to(
-                ((canvas.width() / 2) - (width / 2)) as u16,
-                (canvas.height() / 2) as u16,
-            );
-
-            // Render
-            draw(&mut canvas);
-
-            // Frame limiter
-            sleep(Duration::from_millis(83));
+        let dt = (1000. * frame_rate) - start.elapsed().as_millis() as f32;
+        if dt > 0. {
+            sleep(Duration::from_millis(dt as u64));
+            update(frame_rate).unwrap();
+        } else if dt > 0. {
+            update(dt).unwrap();
+            panic!("Took too long");
         }
-
-        color::foreground::reset();
     }
-    print!("{}\x1b[0m", cursor::SHOW);
+
+    print!("\x1b[0m");
+    // print!("\x1b[2J\x1b[H");
+    print!("\x1b[?25l");
+    println!("({}, {})", buffer.width(), buffer.height());
 }
