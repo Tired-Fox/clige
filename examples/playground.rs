@@ -4,13 +4,13 @@ use std::io::Write;
 use std::time::{Duration, Instant};
 use std::{io, thread::sleep};
 
-use rand::{thread_rng, Rng};
 use clige::core::{
     buffer::{Buffer, PixelBuffer},
     color::{Color, Context},
     data::{Pixel, Rect},
     noise_map::NoiseMap,
 };
+use rand::{thread_rng, Rng};
 
 fn update(dt: f32) -> Result<(), String> {
     Ok(())
@@ -25,12 +25,11 @@ fn main() {
         .size(1000, 1000)
         .scale(scale as f64 * 0.035)
         .build();
-    
+
     print!("\x1b[?25h");
 
-    let frame_rate: f32 = 1./1.; // 12 frames per second
+    let frame_rate: f32 = 1. / 12.; // 12 frames per second
     for i in 0..scale {
-
         let start = Instant::now();
         print!("\x1b[H");
         for h in 0..buffer.height() {
