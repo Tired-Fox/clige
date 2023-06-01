@@ -7,23 +7,36 @@ use std::{io, thread::sleep};
 use clige::core::{
     buffer::{Buffer, PixelBuffer},
     color::{Color, Context},
-    data::{Pixel, Rect},
+    data::Pixel,
     noise_map::NoiseMap,
 };
 use rand::{thread_rng, Rng};
 
-fn update(dt: f32) -> Result<(), String> {
-    Ok(())
-}
+// fn update(dt: f32) -> Result<(), String> {
+//     Ok(())
+// }
 
 fn main() {
-    let termsize::Size { rows, cols } = termsize::get().unwrap();
-    let mut buffer = PixelBuffer::init(cols as usize, rows as usize);
+    // ┄ ┆
+    // ═ ║
+
+ //    print!("\x1b[33;40m");
+ //    println!(
+ //        r#"
+ //     ║   
+ // ════ ┄┄┄ 
+ //     ║   
+ // "#
+ //    );
+ //    print!("\x1b[0m");
+ //    return;
+    let mut buffer = PixelBuffer::default();
 
     let scale = 100;
-    let noise = NoiseMap::perlin(thread_rng().gen::<u32>())
-        .size(1000, 1000)
-        .scale(scale as f64 * 0.035)
+    let noise = NoiseMap::fbm(thread_rng().gen::<u32>())
+        .size(500, 500)
+        .scale(10.)
+        .bounds(-1., 1.)
         .build();
 
     print!("\x1b[?25h");
@@ -34,8 +47,12 @@ fn main() {
         print!("\x1b[H");
         for h in 0..buffer.height() {
             for w in 0..buffer.width() {
-                let mut n = (11. * noise.get(i + w, i + h)) as i16;
+                let sample = noise.get(i + w, i + h);
+                let mut n = (11. * sample) as i16;
 
+                if n < -11 || n > 11 {
+                    panic!("Invalid noise value: {} = {}", sample, n);
+                }
                 if n < 0 {
                     n = 232 + (n.abs() * 1);
                 } else {
@@ -54,20 +71,15 @@ fn main() {
                     .unwrap();
             }
         }
-        print!(
-            "{}",
-            buffer
-                .render(&Rect::from([buffer.width(), buffer.height()]))
-                .unwrap()
-        );
+        print!("{}", buffer.render().unwrap());
         io::stdout().flush().unwrap();
 
         let dt = (1000. * frame_rate) - start.elapsed().as_millis() as f32;
         if dt > 0. {
             sleep(Duration::from_millis(dt as u64));
-            update(frame_rate).unwrap();
+            // update(frame_rate).unwrap();
         } else if dt > 0. {
-            update(dt).unwrap();
+            // update(dt).unwrap();
             panic!("Took too long");
         }
     }

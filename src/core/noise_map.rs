@@ -1,4 +1,4 @@
-use noise::{Billow, Fbm, NoiseFn, Perlin};
+use noise::{Billow, Fbm, NoiseFn, Perlin, Simplex, Terrace, Worley};
 
 pub struct NoiseMapBuilder<N>
 where
@@ -95,6 +95,18 @@ impl NoiseMap<Billow<Perlin>> {
 impl NoiseMap<Fbm<Perlin>> {
     pub fn fbm(seed: u32) -> NoiseMapBuilder<Fbm<Perlin>> {
         NoiseMapBuilder::new(Fbm::<Perlin>::new(seed))
+    }
+}
+
+impl NoiseMap<Worley> {
+    pub fn worley(seed: u32) -> NoiseMapBuilder<Worley> {
+        NoiseMapBuilder::new(Worley::new(seed))
+    }
+}
+
+impl NoiseMap<Simplex> {
+    pub fn simplex(seed: u32) -> NoiseMapBuilder<Simplex> {
+        NoiseMapBuilder::new(Simplex::new(seed))
     }
 }
 

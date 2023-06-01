@@ -57,10 +57,14 @@ impl Color {
         }
     }
 
-    pub fn new(foreground: String, background: String) -> Self {
+    pub fn new<S1, S2>(foreground: S1, background: S2) -> Self
+    where
+        S1: Display,
+        S2: Display,
+    {
         Color {
-            foreground: Some(foreground),
-            background: Some(background),
+            foreground: Some(foreground.to_string()),
+            background: Some(background.to_string()),
         }
     }
 
@@ -68,10 +72,7 @@ impl Color {
         match context {
             Context::Foreground => Color::fg(format!("38;5;{}", code)),
             Context::Background => Color::bg(format!("38;5;{}", code)),
-            Context::Solid => Color::new(
-                format!("38;5;{}", code),
-                format!("38;5;{}", code),
-            ),
+            Context::Solid => Color::new(format!("38;5;{}", code), format!("38;5;{}", code)),
         }
     }
 
