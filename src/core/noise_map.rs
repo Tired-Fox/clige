@@ -1,11 +1,11 @@
-use noise::{Billow, Fbm, NoiseFn, Perlin, Simplex, Terrace, Worley};
+use noise::{Billow, Fbm, NoiseFn, Perlin, Simplex, Worley};
 
 pub struct NoiseMapBuilder<N>
 where
     N: NoiseFn<f64, 2>,
 {
     pub noise: N,
-    size: (usize, usize),
+    step: (f64, f64),
     x_bounds: (f64, f64),
     y_bounds: (f64, f64),
 }
@@ -17,18 +17,18 @@ where
     pub fn new(noise: N) -> Self {
         NoiseMapBuilder {
             noise,
-            size: (100, 100),
+            step: (0.15, 0.15),
             x_bounds: (1., 1.),
             y_bounds: (1., 1.),
         }
     }
 
-    pub fn size(self, width: usize, height: usize) -> Self {
-        NoiseMapBuilder {
-            size: (width, height),
-            ..self
-        }
-    }
+    // pub fn size(self, width: usize, height: usize) -> Self {
+    //     NoiseMapBuilder {
+    //         size: (width, height),
+    //         ..self
+    //     }
+    // }
 
     pub fn x_bounds(self, lower: f64, upper: f64) -> Self {
         NoiseMapBuilder {
@@ -52,10 +52,9 @@ where
         }
     }
 
-    pub fn scale(self, scale: f64) -> Self {
+    pub fn step(self, x: f64, y: f64) -> Self {
         NoiseMapBuilder {
-            x_bounds: (-scale, scale),
-            y_bounds: (-scale, scale),
+            step: (x, y),
             ..self
         }
     }
@@ -63,7 +62,7 @@ where
     pub fn build(self) -> NoiseMap<N> {
         NoiseMap {
             noise: self.noise,
-            size: self.size,
+            step: self.step,
             x_bounds: self.x_bounds,
             y_bounds: self.y_bounds,
         }
@@ -75,7 +74,7 @@ where
     N: NoiseFn<f64, 2>,
 {
     pub noise: N,
-    size: (usize, usize),
+    step: (f64, f64),
     x_bounds: (f64, f64),
     y_bounds: (f64, f64),
 }
@@ -114,10 +113,6 @@ impl<N> NoiseMap<N>
 where
     N: NoiseFn<f64, 2>,
 {
-    pub fn size(&mut self, width: usize, height: usize) {
-        self.size = (width, height);
-    }
-
     pub fn x_bounds(&mut self, lower: f64, upper: f64) {
         self.x_bounds = (lower, upper)
     }
@@ -131,9 +126,8 @@ where
         self.y_bounds(lower, upper);
     }
 
-    pub fn scale(&mut self, scale: f64) {
-        self.x_bounds(-scale, scale);
-        self.y_bounds(-scale, scale);
+    pub fn step(&mut self, x: f64, y: f64) {
+        self.step= (x, y);
     }
 }
 
@@ -150,14 +144,8 @@ where
     N: NoiseFn<f64, 2>,
 {
     pub fn get(&self, x: usize, y: usize) -> f64 {
-        let x_extent = self.x_bounds.1 - self.x_bounds.0;
-        let y_extent = self.y_bounds.1 - self.y_bounds.0;
-
-        let x_step = x_extent / self.size.0 as f64;
-        let y_step = y_extent / self.size.1 as f64;
-
-        let current_y = self.y_bounds.0 + y_step * y as f64;
-        let current_x = self.x_bounds.0 + x_step * x as f64;
+        let current_y = self.y_bounds.0 + self.step.1 * y as f64;
+        let current_x = self.x_bounds.0 + self.step.0 * x as f64;
         self.noise.get(pad_array(&[current_x, current_y]))
     }
 }

@@ -27,7 +27,7 @@ pub trait Buffer {
     ///
     /// The buffer will be fixed at the size specified. The buffer may be resized
     /// but all data will be reset/lost
-    fn init(width: usize, height: usize) -> Self;
+    fn new(width: usize, height: usize) -> Self;
 
     /// Set a specific index in the buffer to a new value
     fn set(&mut self, x: usize, y: usize, value: Self::Pixel) -> Result<(), Self::Error>;
@@ -65,7 +65,7 @@ impl Default for PixelBuffer {
     /// Pixel buffer that is the width and height of the terminal
     fn default() -> Self {
         let (width, height) = get_term_size();
-        PixelBuffer::init(width, height)
+        PixelBuffer::new(width, height)
     }
 }
 
@@ -88,7 +88,7 @@ impl Buffer for PixelBuffer {
         self.height
     }
 
-    fn init(width: usize, height: usize) -> Self {
+    fn new(width: usize, height: usize) -> Self {
         PixelBuffer {
             pixels: vec![Pixel::default(); width * height],
             width,
