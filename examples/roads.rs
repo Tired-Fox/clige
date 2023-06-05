@@ -15,39 +15,25 @@
 //!     - Near another road
 //!
 extern crate clige;
+use clige::gen::{NoiseMap, Random};
+use rand::Rng;
+//sige
 
-use std::{collections::hash_map::DefaultHasher, hash::{Hash, Hasher}};
+fn main() {
+    // let mut rng = Random::new();
 
-use clige::core::{buffer::{PixelBuffer, Buffer}, data::Pixel, NoiseMap};
-use rand::{thread_rng, SeedableRng, prelude::*};
-use rand_chacha::ChaCha8Rng;
-
-
-fn main () {
-
-    let input: String = String::from("6100374812663787999");
-    // let input: String = String::from("Some Seed goes here 2109@");
-
-    let seed = match input.parse::<i64>() {
-        Ok(seed) => {
-            seed
-        }
-        Err(_) => {
-            let mut hasher = DefaultHasher::new();
-            input.hash(&mut hasher);
-            hasher.finish() as i64
-        }
-
-    };
-
-    println!("{}", seed);
-
-    let mut rng = ChaCha8Rng::seed_from_u64(seed as u64);
-    let noise = NoiseMap::perlin(seed as u32)
+    // let mut rng = Random::from("Some Seed goes here 2109@");
+    // let mut rng = Random::from("6100374812663787999");
+    let mut rng = Random::from(6100374812663787999);
+    let noise = NoiseMap::perlin(rng.seed())
         .step(0.15, 0.15)
         .bounds(-2., 2.)
         .build();
 
-    // let map = PixelBuffer::default();
-    println!("{} {}", rng.gen_range(0..100), noise.get(600, 100_052))
+    println!("{}", rng.seed());
+    println!(
+        "{} {}",
+        rng.generator().gen_range(0..100),
+        noise.get(600, 100_052)
+    )
 }

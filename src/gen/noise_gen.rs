@@ -80,32 +80,32 @@ where
 }
 
 impl NoiseMap<Perlin> {
-    pub fn perlin(seed: u32) -> NoiseMapBuilder<Perlin> {
-        NoiseMapBuilder::new(Perlin::new(seed))
+    pub fn perlin(seed: i64) -> NoiseMapBuilder<Perlin> {
+        NoiseMapBuilder::new(Perlin::new(seed as u32))
     }
 }
 
 impl NoiseMap<Billow<Perlin>> {
-    pub fn billow(seed: u32) -> NoiseMapBuilder<Billow<Perlin>> {
-        NoiseMapBuilder::new(Billow::<Perlin>::new(seed))
+    pub fn billow(seed: i64) -> NoiseMapBuilder<Billow<Perlin>> {
+        NoiseMapBuilder::new(Billow::<Perlin>::new(seed as u32))
     }
 }
 
 impl NoiseMap<Fbm<Perlin>> {
-    pub fn fbm(seed: u32) -> NoiseMapBuilder<Fbm<Perlin>> {
-        NoiseMapBuilder::new(Fbm::<Perlin>::new(seed))
+    pub fn fbm(seed: i64) -> NoiseMapBuilder<Fbm<Perlin>> {
+        NoiseMapBuilder::new(Fbm::<Perlin>::new(seed as u32))
     }
 }
 
 impl NoiseMap<Worley> {
-    pub fn worley(seed: u32) -> NoiseMapBuilder<Worley> {
-        NoiseMapBuilder::new(Worley::new(seed))
+    pub fn worley(seed: i64) -> NoiseMapBuilder<Worley> {
+        NoiseMapBuilder::new(Worley::new(seed as u32))
     }
 }
 
 impl NoiseMap<Simplex> {
-    pub fn simplex(seed: u32) -> NoiseMapBuilder<Simplex> {
-        NoiseMapBuilder::new(Simplex::new(seed))
+    pub fn simplex(seed: i64) -> NoiseMapBuilder<Simplex> {
+        NoiseMapBuilder::new(Simplex::new(seed as u32))
     }
 }
 
